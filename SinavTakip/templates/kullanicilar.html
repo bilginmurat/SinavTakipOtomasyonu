@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-users me-2"></i>Kullanıcı Yönetimi
+        </h2>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Arama</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" name="search" 
+                                   value="{{ search_query }}" placeholder="Ad, soyad veya e-posta ara...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Bölüm</label>
+                        <select class="form-select" name="department">
+                            <option value="">Tüm Bölümler</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Durum</label>
+                        <select class="form-select" name="approval">
+                            <option value="">Tüm Durumlar</option>
+                            <option value="approved" {% if approval_filter == 'approved' %}selected{% endif %}>Onaylanmış</option>
+                            <option value="pending" {% if approval_filter == 'pending' %}selected{% endif %}>Onay Bekleyen</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block text-muted small">İşlemler</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-filter me-2"></i>Filtrele
+                            </button>
+                            <a href="{% url 'sinavtakip:kullanicilar' %}" class="btn btn-light border">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">Onay Bekleyen Kullanıcılar</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Kullanıcı Adı</th>
+                            <th>Ad Soyad</th>
+                            <th>Email</th>
+                            <th>Departman</th>
+                            <th>Kayıt Tarihi</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in pending_users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.get_full_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{% for department_user in user.department_user.all %}{{ department_user.department.name }}{% endfor %}</td>
+                            <td>{{ user.date_joined|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'sinavtakip:activate_user' user.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check me-1"></i>Onayla
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'sinavtakip:reject_user' user.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times me-1"></i>Reddet
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Onay bekleyen kullanıcı bulunmamaktadır.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Tüm Kullanıcılar</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Kullanıcı Adı</th>
+                            <th>Ad Soyad</th>
+                            <th>Email</th>
+                            <th>Departman</th>
+                            <th>Durum</th>
+                            <th>Son Giriş</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in all_users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.get_full_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{% for department_user in user.department_user.all %}{{ department_user.department.name }}{% endfor %}</td>
+                            <td>
+                                {% if user.is_staff %}
+                                    <span class="badge bg-info">Yönetici</span>
+                                {% elif user.is_approved %}
+                                    <span class="badge bg-success">Aktif</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Onay Bekliyor</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.last_login|date:"d.m.Y H:i"|default:"-" }}</td>
+                            <td style="position: relative;">
+                                {% if user.id != request.user.id %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="dropdownMenu{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                            İşlemler
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ user.id }}">
+                                            {% if user.is_approved %}
+                                                <li>
+                                                    <form method="post" action="{% url 'sinavtakip:deactivate_user' user.id %}" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="fas fa-ban me-1"></i>Pasif Yap
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form method="post" action="{% url 'sinavtakip:set_admin' user.id %}" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        {% if user.is_staff %}
+                                                            <button type="submit" class="dropdown-item text-danger">
+                                                                <i class="fas fa-user-times me-1"></i>Yetkiyi Al
+                                                            </button>
+                                                        {% else %}
+                                                            <button type="submit" class="dropdown-item text-success">
+                                                                <i class="fas fa-user-shield me-1"></i>Yetki Ver
+                                                            </button>
+                                                        {% endif %}
+                                                    </form>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <form method="post" action="{% url 'sinavtakip:activate_user' user.id %}" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="dropdown-item text-success">
+                                                            <i class="fas fa-check me-1"></i>Onayla
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form method="post" action="{% url 'sinavtakip:reject_user' user.id %}" style="margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="fas fa-times me-1"></i>Reddet
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Henüz kayıtlı kullanıcı bulunmamaktadır.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

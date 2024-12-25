@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Dersler{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-book me-2"></i>Mevcut Dersler
+        </h2>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#dersEkleModal">
+                <i class="fas fa-plus me-2"></i>Ders Ekle
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Ders Adı</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" name="search" 
+                                   value="{{ search_query }}" placeholder="Ders ara...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Bölüm</label>
+                        <select class="form-select" name="department">
+                            <option value="">Tüm Bölümler</option>
+                            {% for dept in all_departments %}
+                            <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Sınıf</label>
+                        <select class="form-select" name="grade">
+                            <option value="">Tüm Sınıflar</option>
+                            {% for i in "1234" %}
+                            <option value="{{ i }}" {% if grade_filter == i %}selected{% endif %}>{{ i }}. Sınıf</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block text-muted small">İşlemler</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-filter me-2"></i>Filtrele
+                            </button>
+                            <a href="{% url 'sinavtakip:dersler' %}" class="btn btn-light border">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ders Adı</th>
+                    <th>Program Adı</th>
+                    <th>Sınıf</th>
+                    <th>Dönem</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ders in lessons %}
+                <tr>
+                    <td>{{ ders.name }}</td>
+                    <td>
+                        {% with dept_rel=ders.lessondepartment_set.all|first %}
+                            {% if dept_rel %}
+                                {{ dept_rel.department.name }}
+                            {% else %}
+                                <span class="text-muted">Program Atanmamış</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>{{ ders.grade }}</td>
+                    <td>{{ ders.term }}</td>
+                    <td>
+                        {% if ders.is_have_class %}
+                            <span class="badge bg-danger">Dolu</span>
+                        {% else %}
+                            <span class="badge bg-success">Müsait</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_staff %}
+                            <form method="post" action="{% url 'sinavtakip:ders_sil' ders.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu dersi silmek istediğinize emin misiniz?')">
+                                    <i class="fas fa-trash me-1"></i>Sil
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="dersEkleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Ders Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'sinavtakip:ders_ekle' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="dersAdi" class="form-label">Ders Adı</label>
+                        <input type="text" class="form-control" id="dersAdi" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="programId" class="form-label">Program</label>
+                        <select class="form-select" id="programId" name="department" required>
+                            <option value="">Program Seçiniz</option>
+                            {% for department in all_departments %}
+                                <option value="{{ department.id }}">{{ department.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="grade" class="form-label">Sınıf</label>
+                        <select class="form-select" id="grade" name="grade" required>
+                            <option value="1">1. Sınıf</option>
+                            <option value="2">2. Sınıf</option>
+                            <option value="3">3. Sınıf</option>
+                            <option value="4">4. Sınıf</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="term" class="form-label">Dönem</label>
+                        <select class="form-select" id="term" name="term" required>
+                            <option value="1">1. Dönem</option>
+                            <option value="2">2. Dönem</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

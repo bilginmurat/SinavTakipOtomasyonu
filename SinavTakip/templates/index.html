@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ana Sayfa{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-75">
+        <div class="col-md-8 text-center">
+            <img src="{% static 'images/logo.png' %}" alt="EBYÜ Logo" class="mb-4" style="height: 120px;">
+            <h1 class="display-4 mb-4">Sınav Takip Otomasyonu</h1>
+            
+            {% if user.is_authenticated %}
+                <div class="row g-4 py-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body card-index">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="feature-icon bg-primary bg-gradient p-2 rounded-circle me-3">
+                                        <i class="fas fa-chalkboard text-white"></i>
+                                    </div>
+                                    <h5 class="card-title mb-0">Derslik İşlemleri</h5>
+                                </div>
+                                <p class="card-text text-muted">
+                                    Mevcut derslikleri görüntüleyebilir ve sınav için derslik talebinde bulunabilirsiniz.
+                                </p>
+                                <a href="{% url 'sinavtakip:derslikler' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-arrow-right me-2"></i>Dersliklere Git
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body card-index">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="feature-icon bg-success bg-gradient p-2 rounded-circle me-3">
+                                        <i class="fas fa-tasks text-white"></i>
+                                    </div>
+                                    <h5 class="card-title mb-0">Taleplerim</h5>
+                                </div>
+                                <p class="card-text text-muted">
+                                    Oluşturduğunuz derslik taleplerini görüntüleyebilir ve yönetebilirsiniz.
+                                </p>
+                                <a href="{% url 'sinavtakip:taleplerim' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-arrow-right me-2"></i>Taleplere Git
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.min-vh-75 {
+    min-height: 75vh;
+}
+.feature-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-index {
+    transition: transform 0.2s;
+}
+.card-index:hover {
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}

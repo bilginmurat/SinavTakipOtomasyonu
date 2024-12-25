@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Kullanıcı Talepleri{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>Tüm Talepler
+        </h2>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Arama</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" name="search" 
+                                   value="{{ search_query }}" placeholder="Kullanıcı, derslik veya ders ara...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Durum</label>
+                        <select class="form-select" name="status">
+                            <option value="">Tüm Durumlar</option>
+                            <option value="0" {% if status_filter == '0' %}selected{% endif %}>Beklemede</option>
+                            <option value="1" {% if status_filter == '1' %}selected{% endif %}>Onaylandı</option>
+                            <option value="2" {% if status_filter == '2' %}selected{% endif %}>Reddedildi</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small">Tarih</label>
+                        <input type="date" class="form-control" name="date" value="{{ date_filter }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block text-muted small">İşlemler</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-filter me-2"></i>Filtrele
+                            </button>
+                            <a href="{% url 'sinavtakip:tum_talepler' %}" class="btn btn-light border">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Talep Eden</th>
+                    <th>Derslik</th>
+                    <th>Ders</th>
+                    <th>Sınav Tarihi</th>
+                    <th>Sınav Saati</th>
+                    <th>Talep Tarihi</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for talep in talepler %}
+                <tr>
+                    <td>{{ talep.user.username }}</td>
+                    <td>{{ talep.classroom.title }}</td>
+                    <td>{{ talep.requested_lesson.name }}</td>
+                    <td>{{ talep.exam_time.date.date }}</td>
+                    <td>{{ talep.exam_time.time_slot }}</td>
+                    <td>{{ talep.request_date|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if talep.status == 0 %}
+                        <span class="badge bg-warning">Beklemede</span>
+                        {% elif talep.status == 1 %}
+                        <span class="badge bg-success">Onaylandı</span>
+                        {% else %}
+                        <span class="badge bg-danger">Reddedildi</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if talep.status == 0 %}
+                        <form method="post" action="{% url 'sinavtakip:talep_onayla' talep.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-check me-1"></i>Onayla
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reddetModal{{ talep.id }}">
+                            <i class="fas fa-times me-1"></i>Reddet
+                        </button>
+
+                        <div class="modal fade" id="reddetModal{{ talep.id }}" tabindex="-1" aria-labelledby="reddetModalLabel{{ talep.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="reddetModalLabel{{ talep.id }}">Talebi Reddet</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{% url 'sinavtakip:talep_reddet' talep.id %}" method="post">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label for="rejection_message" class="form-label">Ret Nedeni</label>
+                                                <textarea class="form-control" id="rejection_message" name="rejection_message" rows="3" required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                            <button type="submit" class="btn btn-danger">Reddet</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">Henüz talep bulunmamaktadır.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}İşlem Logları{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-history me-2"></i>İşlem Logları
+        </h2>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label text-muted small">Kullanıcı Adı</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-user text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" name="username" 
+                                   value="{{ request.GET.username }}" placeholder="Kullanıcı ara...">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label text-muted small">İşlem Tipi</label>
+                        <select class="form-select" name="process_type">
+                            <option value="">Tümü</option>
+                            {% for type_id, type_name in process_types %}
+                            <option value="{{ type_id }}" {% if request.GET.process_type == type_id %}selected{% endif %}>
+                                {{ type_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block text-muted small">İşlemler</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-filter me-2"></i>Filtrele
+                            </button>
+                            <a href="{% url 'sinavtakip:loglar' %}" class="btn btn-light border">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Kullanıcı</th>
+                    <th>İşlem Tipi</th>
+                    <th>Açıklama</th>
+                    <th>Tarih</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.user.username }}</td>
+                    <td>{{ log.get_process_type_display }}</td>
+                    <td>{{ log.description }}</td>
+                    <td>{{ log.process_time|date:"d.m.Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Henüz log kaydı bulunmamaktadır.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if logs.paginator.num_pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if logs.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ logs.previous_page_number }}{% if request.GET.username %}&username={{ request.GET.username }}{% endif %}{% if request.GET.process_type %}&process_type={{ request.GET.process_type }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in logs.paginator.page_range %}
+            {% if num == logs.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.username %}&username={{ request.GET.username }}{% endif %}{% if request.GET.process_type %}&process_type={{ request.GET.process_type }}{% endif %}">
+                    {{ num }}
+                </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if logs.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ logs.next_page_number }}{% if request.GET.username %}&username={{ request.GET.username }}{% endif %}{% if request.GET.process_type %}&process_type={{ request.GET.process_type }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

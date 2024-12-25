@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Derslikler{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-chalkboard me-2"></i>Mevcut Derslikler
+        </h2>
+        {% if user.is_staff %}
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#derslikEkleModal">
+            <i class="fas fa-plus me-2"></i>Derslik Ekle
+        </button>
+        {% endif %}
+    </div>
+    <div class="row">
+        {% for classroom in classrooms %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ classroom.title }}</h5>
+                    <div class="card-text">
+                        Kapasite: {{ classroom.capacity }} kişi<br>
+                        <div class="feature-container">
+                            <span class="feature-label">Özellikler:</span>
+                            <span class="feature-list">
+                                {% for cf in classroom.features.all %}
+                                    <span class="feature-item">{{ cf.feature.name }}</span>{% if not forloop.last %}{% endif %}
+                                {% empty %}
+                                    Özellik yok
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-actions mt-3">
+                        <div class="d-flex gap-2">
+                            {% if not classroom.status %}
+                                <button type="button" class="btn btn-primary flex-grow-1" data-derslik-id="{{ classroom.id }}">
+                                    <i class="fas fa-hand-point-up me-2"></i>Talep Et
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-primary flex-grow-1 disabled">
+                                    <i class="fas fa-hand-point-up me-2"></i>Talep Et
+                                </button>
+                            {% endif %}
+                            {% if user.is_staff %}
+                            <form method="post" action="{% url 'sinavtakip:derslik_sil' classroom.id %}" class="flex-grow-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Bu dersliği silmek istediğinize emin misiniz?')">
+                                    <i class="fas fa-trash me-1"></i>Sil
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal fade" id="derslikEkleModal" tabindex="-1" aria-labelledby="derslikEkleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="derslikEkleModalLabel">Yeni Derslik Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'sinavtakip:derslik_ekle' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="derslikAdi" class="form-label">Derslik Adı</label>
+                        <input type="text" class="form-control" id="derslikAdi" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="kapasite" class="form-label">Kapasite</label>
+                        <input type="number" class="form-control" id="kapasite" name="capacity" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Özellikler</label>
+                        {% for feature in features %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="feature_{{ feature.id }}" name="features[]" value="{{ feature.id }}">
+                                <label class="form-check-label" for="feature_{{ feature.id }}">
+                                    {{ feature.name }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Derslik Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="talepOlusturModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Talep Oluştur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="talepForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="classroom_id" id="selectedClassId" value="">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6>Derslik Bilgileri</h6>
+                        <p><strong>Sınıf:</strong> <span id="selectedClassName"></span></p>
+                        <p><strong>Kapasite:</strong> <span id="selectedClassCapacity"></span></p>
+                        <p><strong>Özellikler:</strong> <span id="selectedClassFeatures"></span></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="lessonSelect" class="form-label">Ders Seçiniz</label>
+                        <select class="form-select" id="lessonSelect" name="lesson_id" required>
+                            <option value="">Seçiniz...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="examDateSelect" class="form-label">Sınav Tarihi Seçiniz</label>
+                        <select class="form-select" id="examDateSelect" name="exam_date_id" required disabled>
+                            <option value="">Önce ders seçiniz...</option>
+                            {% for date in exam_dates %}
+                                <option value="{{ date.id }}">{{ date.date|date:"d/m/Y" }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="examTimeSelect" class="form-label">Sınav Saati Seçiniz</label>
+                        <select class="form-select" id="examTimeSelect" name="exam_time_id" required disabled>
+                            <option value="">Önce tarih seçiniz...</option>
+                        </select>
+                    </div>
+                    
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Talep Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const talepForm = document.getElementById('talepForm');
+        const selectedClassId = document.getElementById('selectedClassId');
+        const selectedClassName = document.getElementById('selectedClassName');
+        const selectedClassCapacity = document.getElementById('selectedClassCapacity');
+        const selectedClassFeatures = document.getElementById('selectedClassFeatures');
+        const lessonSelect = document.getElementById('lessonSelect');
+        const examDateSelect = document.getElementById('examDateSelect');
+        const examTimeSelect = document.getElementById('examTimeSelect');
+        
+        const talepModal = new bootstrap.Modal(document.getElementById('talepOlusturModal'));
+        const talepModalElement = document.getElementById('talepOlusturModal');
+
+        talepModalElement.addEventListener('show.bs.modal', function() {
+            lessonSelect.value = '';
+            examDateSelect.value = '';
+            examTimeSelect.value = '';
+            examDateSelect.disabled = true;
+            examTimeSelect.disabled = true;
+        });
+
+        lessonSelect.addEventListener('change', function() {
+            if (this.value) {
+                examDateSelect.disabled = false;
+                examDateSelect.querySelector('option:first-child').textContent = 'Tarih seçiniz...';
+            } else {
+                examDateSelect.disabled = true;
+                examDateSelect.querySelector('option:first-child').textContent = 'Önce ders seçiniz...';
+                examDateSelect.value = '';
+                examTimeSelect.value = '';
+                examTimeSelect.disabled = true;
+            }
+        });
+
+        document.querySelectorAll('[data-derslik-id]').forEach(button => {
+            button.addEventListener('click', async function(event) {
+                event.preventDefault();
+                
+                const derslikId = this.getAttribute('data-derslik-id');
+                selectedClassId.value = derslikId;
+                
+                try {
+
+                    const card = this.closest('.card');
+                    
+                    const title = card.querySelector('.card-title').textContent.trim();
+                    const cardText = card.querySelector('.card-text');
+                    
+                    const capacityText = cardText.textContent.match(/Kapasite: (.*?) kişi/);
+                    const capacity = capacityText ? capacityText[1].trim() : '';
+                    
+                    const features = [];
+                    card.querySelectorAll('.feature-item').forEach(feature => {
+                        features.push(feature.textContent.trim());
+                    });
+                    
+                    selectedClassName.textContent = title;
+                    selectedClassCapacity.textContent = capacity;
+                    selectedClassFeatures.textContent = features.join(', ') || 'Özellik yok';
+                    
+                    talepModal.show();
+                } catch (error) {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                }
+            });
+        });
+
+        async function loadLessons() {
+            try {
+                const response = await fetch('{% url "sinavtakip:get_lessons" %}', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    lessonSelect.innerHTML = '<option value="">Ders Seçin</option>';
+                    if (data.lessons && data.lessons.length > 0) {
+                        data.lessons.forEach(lesson => {
+                            const option = document.createElement('option');
+                            option.value = lesson.id;
+                            option.textContent = lesson.name;
+                            lessonSelect.appendChild(option);
+                        });
+                    } else {
+                        showAlert('warning', data.message || 'Hiç ders bulunamadı.');
+                    }
+                } else {
+                    showAlert('error', data.error || 'Dersler yüklenirken bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Error loading lessons:', error);
+                showAlert('error', 'Dersler yüklenirken bir hata oluştu');
+            }
+        }
+
+        $('#talepOlusturModal').on('show.bs.modal', function (e) {
+            loadLessons();
+        });
+
+        talepForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            if (!lessonSelect.value) {
+                alert('Lütfen bir ders seçiniz.');
+                return;
+            }
+            if (!examDateSelect.value) {
+                alert('Lütfen bir tarih seçiniz.');
+                return;
+            }
+            if (!examTimeSelect.value) {
+                alert('Lütfen bir saat seçiniz.');
+                return;
+            }
+            
+            const classroomId = selectedClassId.value;
+            const lessonId = lessonSelect.value;
+            const examTimeId = examTimeSelect.value;
+            
+            try {
+                const response = await fetch(`/talep-olustur/${classroomId}/${lessonId}/${examTimeId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    talepModal.hide();
+                    location.reload();
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+            }
+        });
+
+        examDateSelect.addEventListener('change', function() {
+            const dateId = this.value;
+            const classroomId = selectedClassId.value;
+            examTimeSelect.disabled = true;
+            examTimeSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+
+            if (!dateId) {
+                examTimeSelect.innerHTML = '<option value="">Önce tarih seçiniz...</option>';
+                examTimeSelect.disabled = true;
+                return;
+            }
+
+            fetch(`/get-exam-times/${dateId}/${classroomId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                examTimeSelect.innerHTML = '<option value="">Saat seçiniz...</option>';
+                
+                if (data.exam_times && data.exam_times.length > 0) {
+                    data.exam_times.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time.id;
+                        option.textContent = time.time_slot;
+                        examTimeSelect.appendChild(option);
+                    });
+                    examTimeSelect.disabled = false;
+                } else {
+                    examTimeSelect.innerHTML = '<option value="">Bu derslik için müsait saat bulunmamaktadır</option>';
+                    examTimeSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                examTimeSelect.innerHTML = '<option value="">Saat bilgileri alınamadı</option>';
+                examTimeSelect.disabled = true;
+            });
+        });
+    });
+</script>
+
+{% endblock %}

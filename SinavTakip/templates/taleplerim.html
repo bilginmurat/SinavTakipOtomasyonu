@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Taleplerim{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2>
+        <i class="fas fa-tasks me-2"></i>Taleplerim
+    </h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Derslik</th>
+                    <th>Ders</th>
+                    <th>Sınav Tarihi</th>
+                    <th>Sınav Saati</th>
+                    <th>Sınıf</th>
+                    <th>Dönem</th>
+                    <th>Talep Tarihi</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for talep in talepler %}
+                <tr>
+                    <td>{{ talep.classroom.title }}</td>
+                    <td>{{ talep.requested_lesson.name }}</td>
+                    <td>{{ talep.exam_time.date.date|date:"d/m/Y" }}</td>
+                    <td>{{ talep.exam_time.time_slot }}</td>
+                    <td>{{ talep.requested_lesson.grade }}</td>
+                    <td>{{ talep.requested_lesson.term }}</td>
+                    <td>{{ talep.request_date|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if talep.status == 0 %}
+                        <span class="badge bg-warning">Beklemede</span>
+                        {% elif talep.status == 1 %}
+                        <span class="badge bg-success">Onaylandı</span>
+                        {% else %}
+                        <span class="badge bg-danger">Reddedildi</span>
+                        {% if talep.rejection_message %}
+                        <br>
+                        <small class="text-danger mt-1">Ret Nedeni: {{ talep.rejection_message }}</small>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if talep.status == 0 %}
+                        <form method="post" action="{% url 'sinavtakip:talep_iptal' talep.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu talebi iptal etmek istediğinize emin misiniz?')">
+                                <i class="fas fa-ban me-1"></i>İptal Et
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Henüz talep bulunmamaktadır.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
